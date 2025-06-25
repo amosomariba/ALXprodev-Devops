@@ -2,9 +2,12 @@
 
 # Directory to store Pokémon JSON files
 DATA_DIR="pokemon_data"
+ERROR_LOG="errors.txt"
 
-# Create the directory if it doesn't exist
+# Create the data directory if it doesn't exist
 mkdir -p "$DATA_DIR"
+# Clear old error log if it exists
+> "$ERROR_LOG"
 
 # List of Pokémon (all lowercase to match API names)
 POKEMONS=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
@@ -12,16 +15,28 @@ POKEMONS=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 # Loop through each Pokémon
 for pokemon in "${POKEMONS[@]}"; do
   echo "Fetching data for $pokemon..."
-  
-  # Fetch data using curl
-  curl -s -f "https://pokeapi.co/api/v2/pokemon/$pokemon" -o "$DATA_DIR/${pokemon}.json"
-  
-  if [ $? -eq 0 ]; then
-    echo "Saved data to $DATA_DIR/${pokemon}.json ✅"
-  else
-    echo "Failed to fetch data for $pokemon ❌" >> errors.txt
+
+  RETRY_COUNT=0
+  MAX_RETRIES=3
+  SUCCESS=0
+
+  while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    # Attempt to fetch data
+    if curl -s -f "https://pokeapi.co/api/v2/pokemon/$pokemon" -o "$DATA_DIR/${pokemon}.json"; then
+      echo "Saved data to $DATA_DIR/${pokemon}.json ✅"
+      SUCCESS=1
+      break
+    else
+      echo "Attempt $((RETRY_COUNT+1)) failed for $pokemon..."
+      ((RETRY_COUNT++))
+      sleep 2  # Wait before retrying
+    fi
+  done
+
+  if [ $SUCCESS -eq 0 ]; then
+    echo "❌ Failed to fetch data for $pokemon after $MAX_RETRIES attempts." | tee -a "$ERROR_LOG"
   fi
 
-  # Wait 2 seconds between requests to avoid rate-limiting
+  # Wait between Pokémon to avoid rate-limiting
   sleep 2
 done
