@@ -2,7 +2,7 @@
 
 # Check if data.json exists
 if [ ! -f "data.json" ]; then
-  echo "Error: data.json not found. Please run data_extraction_automation-0x01 first."
+  echo "Error: data.json not found. Please run data_extraction_automation-0x01.sh first."
   exit 1
 fi
 
@@ -13,4 +13,4 @@ weight=$(jq -r '.weight' data.json | awk '{printf "%.1f", $1 / 10}')  # Convert 
 type=$(jq -r '.types[0].type.name' data.json | sed 's/.*/\u&/')  # First type, capitalized
 
 # Final output
-echo "$name is of type $type, weighs ${weight}kg, and is ${height}m tall."
+echo "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
