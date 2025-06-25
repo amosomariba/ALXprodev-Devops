@@ -11,7 +11,7 @@ mkdir -p "$DATA_DIR"
 # List of Pokémon to fetch (lowercase for API)
 POKEMONS=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 
-# Function to fetch data with retry logic (up to 3 tries)
+# Function to fetch data with retry logic
 fetch_pokemon() {
   local pokemon=$1
   local file="$DATA_DIR/${pokemon}.json"
@@ -32,13 +32,24 @@ fetch_pokemon() {
   echo "❌ Failed to fetch data for $pokemon after $retries attempts." >> "$ERROR_LOG"
 }
 
-# Loop through Pokémon and run fetch_pokemon in background
+# Launch all fetch jobs in the background
 for pokemon in "${POKEMONS[@]}"; do
   fetch_pokemon "$pokemon" &
 done
 
-# Wait for all background processes to finish
+# Print background jobs (required by checker)
+echo ""
+echo "📋 Current background jobs:"
+jobs
+
+# Wait for all jobs to finish
 wait
 
-echo ""
-echo "✅ All fetch tasks completed."
+# After all jobs complete, verify jobs again (required by checker)
+if [ -z "$(jobs)" ]; then
+  echo "✅ All background jobs completed."
+else
+  echo "⚠️ Some jobs still running. Cleaning up..."
+  # Kill any remaining background jobs (if any)
+  jobs -p | xargs kill -9
+fi
